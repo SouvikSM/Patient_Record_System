@@ -1,15 +1,12 @@
 const express=require('express');
 const mongoose=require('mongoose');
 const m=require('multer');
-// const pdfkit=require('pdfkit');
-// const fs=require('fs');
 const cors = require('cors');
 require('dotenv').config()
 
 
 const app=express();
 const port= process.env.PORT;
-// const path = require('path');
 
 
 
@@ -86,64 +83,16 @@ const PModel = mongoose.model('patient', PatientSchema);
 
 
 
-    // function reset(){
-    //     let folder=__dirname+'/uploads/';
-
-    //     fs.readdir(folder,(err,fls)=>{
-    //         for(const file of fls){
-    //             fs.unlinkSync(folder+file);
-    //         }
-    //     });
-    // }
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
 app.use(cors()); // Enable CORS for all routes
-    // app.use(express.static(__dirname+'/'+'public'));
-    // app.use('/pages', express.static(path.join(__dirname, 'pages')));
-    // app.set('view engine','ejs');
 
 
 app.get('/',(req,res)=>{
     res.send({message: "Backend works"});
-    // reset();
-    // res.sendFile(__dirname+'/'+'pages/form.html');
 });
-    // app.get('/details', (req, res) => {
-    //     res.sendFile(__dirname+'/'+'pages/details.html');
-    // });
-    // app.get('/rep', (req, res) => {
-    //     res.sendFile(__dirname+'/'+'pages/rep.html');
-    // });
-
-    // app.post('/convert',upload.array('files'),(req,res)=>{
-    //     let filename='untitled.pdf';
-    //     const doc=new pdfkit();
-    //     doc.pipe(fs.createWriteStream(__dirname+'/pdf/'+filename));
-
-    //     for(let i=0;i<req.files.length;i++){
-    //         if(i>0){
-    //             doc.addPage();
-    //         }
-    //         doc.image(req.files[i].path,{
-    //             fit:[500,500],
-    //             align:'center',
-    //             valign:'center'
-    //         });
-    //     }
-    //     doc.end();
-    //     res.render('response',{filename:filename});
-    //     console.log('file :', filename);
-    // });
-
-    // app.post('/download',(req,res)=>{
-    //     res.download(__dirname+'/pdf/untitled.pdf');
-    // });
-
-    // app.post('/patients', upload.fields([{ name: 'report' }, { name: 'image' }]), async (req, res) => {
     
-    
+// Create patients (POST)
 app.post('/patients', upload.fields([{ name: 'report' }, { name: 'image' }]), async (req, res) => {
     try {
         const {

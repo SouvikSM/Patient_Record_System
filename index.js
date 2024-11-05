@@ -1,17 +1,66 @@
 const express=require('express');
 const mongoose=require('mongoose');
-const m=require('multer');
+const multer=require('multer');
 const cors = require('cors');
+const exp_status = require('express-status-monitor');
+const multerS3 = require('multer-s3');
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+
 require('dotenv').config()
 
-
-const app=express();
 const port= process.env.PORT;
 
 
+const app=express();
 
-const storage = m.memoryStorage();  // Store files in memory as buffers
-const upload = m({ storage: storage });
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cors()); // Enable CORS for all routes
+app.use(exp_status());
+
+
+const client = new S3Client({ 
+    credentials: {
+        accessKeyId: process.env.ACCESSKEYID,
+        secretAccessKey: process.env.SECRETACCESSKEY,
+    },
+    region: process.env.REGION
+});
+
+
+// const storage = m.memoryStorage();  // Store files in memory as buffers
+// const upload = m({ storage: storage });
+
+const uploadi = multer({
+    storage: multerS3({
+        s3: client,
+        bucket: process.env.BUCKET_NAME,
+        metadata: (req, file, cb) => {
+            cb(null, { fieldName: file.fieldname });
+        },
+        key: (req, file, cb) => {
+            cb(null, `uploads/kol/img/${Date.now().toString()}-${file.originalname}`);
+        }
+    })
+});
+const uploadf = multer({
+    storage: multerS3({
+        s3: client,
+        bucket: process.env.BUCKET_NAME,
+        contentType: multerS3.AUTO_CONTENT_TYPE,
+        metadata: (req, file, cb) => {
+            cb(null, { 
+                fieldName: file.originalname,
+                // contentType: 'application/pdf',
+                // contentDisposition: 'inline'
+            });
+        },
+        key: (req, file, cb) => {
+            cb(null, `uploads/kol/pdf/${Date.now().toString()}-${file.originalname}`);
+        }
+    })
+});
+
 
 const URI = process.env.MONGODB_URL;
 
@@ -54,11 +103,13 @@ const PatientSchema = new mongoose.Schema({
         required: true
     },
     report: {
-        type: Buffer,
+        // type: Buffer,
+        type: String,
         required: true
     },
     image: {
-        type: Buffer,
+        // type: Buffer,
+        type: String,
         required: true
     },
     coenzymes: {
@@ -83,16 +134,46 @@ const PModel = mongoose.model('patient', PatientSchema);
 
 
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cors()); // Enable CORS for all routes
+
 
 
 app.get('/',(req,res)=>{
+    console.log('/ URL hitted');
     res.send({message: "Backend works"});
 });
-    
+
+
+// upload image
+app.post('/uploadi', uploadi.single('img'), (req, res) => {
+    if (req.file) {
+        console.log('image uploaded - ',req.file.location);
+        res.status(200).json({
+            message: 'Image uploaded successfully',
+            fileUrl: req.file.location // S3 file URL
+        });
+    } else {
+        res.status(400).json({ error: 'File upload failed' });
+    }
+});
+
+
+// upload pdf
+app.post('/uploadf', uploadf.single('pdf'), (req, res) => {
+    if (req.file) {
+        console.log('file uploaded - ', req.file.location);
+        res.status(200).json({
+            message: 'File uploaded successfully',
+            fileUrl: req.file.location // S3 file URL
+        });
+    } else {
+        res.status(400).json({ error: 'File upload failed' });
+    }
+});
+
+
+
 // Create patients (POST)
+/*
 app.post('/patients', upload.fields([{ name: 'report' }, { name: 'image' }]), async (req, res) => {
     try {
         const {
@@ -103,9 +184,11 @@ app.post('/patients', upload.fields([{ name: 'report' }, { name: 'image' }]), as
 
         console.log('this is image',req.files.image);
         console.log('this is report',req.files.report);
+        
 
         if (!req.files || !req.files.report || !req.files.image) {
-            return res.status(400).json({ err: 'error occured', message: error.message });
+            res.send({ err: 'image and pdf not attached' });
+            return res.status(400).json({ err: 'image and pdf not attached--------' });
         }
 
         // Create a new patient instance using the PModel, not Patient
@@ -128,35 +211,128 @@ app.post('/patients', upload.fields([{ name: 'report' }, { name: 'image' }]), as
         });
 
         await newPatient.save();
-        console.log('body',req.body);
-        console.log('files',req.files);
+        console.log('--------patient added');
         res.status(201).json({message: 'success', newPatient});
     } catch (error) {
-        console.error('error in catch');
-        res.status(500).json({ message: "error in catch" });
+        console.error('error in catch',error);
+        if (error) {
+            res.send({ err: error.message });
+        } else{
+            res.send({ err: 'error in catch' });
+            res.status(500).json({ message: "error in catch--------" });
+        }
+    }
+}); */
+
+
+app.post('/patients', async (req, res) => {
+    try {
+        const {
+            name, age, gender, height, weight, cause, branch, last_checked,
+            address, coenzymes, boosters, vitamins, trace, image, report
+        } = req.body;
+
+
+        // console.log('this is image',req.files.image);
+        // console.log('this is report',req.files.report);
+        
+
+        // if (!req.files || !req.files.report || !req.files.image) {
+        //     res.send({ err: 'image and pdf not attached' });
+        //     return res.status(400).json({ err: 'image and pdf not attached--------' });
+        // }
+
+        // Create a new patient instance using the PModel, not Patient
+        const newPatient = new PModel(
+            // req.body
+            {
+            name: name,
+            age: age,
+            gender: gender,
+            height: height,
+            weight: weight,
+            cause: cause,
+            branch: branch,
+            last_checked: new Date(last_checked),
+            address: address,
+            // report: req.files.report[0].buffer,
+            // image: req.files.image[0].buffer,
+            report: report,
+            image: image,
+            coenzymes: coenzymes,
+            boosters: boosters,
+            vitamins: vitamins,
+            trace: trace
+        }
+    );
+
+        await newPatient.save();
+        console.log('--------patient added');
+        res.status(201).json({message: 'success', newPatient});
+    } catch (error) {
+        console.error('error in catch',error);
+        if (error) {
+            res.send({ message: 'error', err: error.message });
+        } else{
+            res.send({ err: 'error in catch' });
+            res.status(500).json({ message: "error in catch--------" });
+        }
     }
 });
+
+
+app.get('/all', async (req, res) => {
+    try {
+        const patients = await PModel.find({});
+        res.status(200).json({
+            message: "success",
+            totalPatients: patients.length,
+            patientsData: patients
+        });
+    } catch (error) {
+        console.error('Error fetching patients:', error);
+        res.status(500).json({ message: 'Error fetching patients', error: error.message });
+    }
+});
+
+
 
 
 // Get all patients (GET)
 app.get('/patients', async (req, res) => {
     try {
-        // Fetch all patients from the database, excluding 'report' and 'image' fields
-        const patients = await PModel.find({}, '-report -image'); // Exclude the binary fields
+        const includeBinary = req.query.includeBinary === 'true';
+        const projection = includeBinary ? {} : '-report -image';
 
-        // Log the number of patients fetcheds
-        console.log(`Fetched ${patients.length} patients`);
+        // Get pagination parameters from query with default values
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
 
-        // Return the list of patients
-        res.status(200).json({message: "success", count: patients.length, patientsData: patients});
+        // Fetch patients with pagination
+        const patients = await PModel.find({}, projection).skip(skip).limit(limit);
+        const totalPatients = await PModel.countDocuments();
+
+        console.log('fetched '+patients.length+' patients');
+        // Return paginated list of patients
+        res.status(200).json({
+            message: "success",
+            count: patients.length,
+            totalPatients,
+            patientsData: patients
+        });
     } catch (error) {
         // Log the error in case something goes wrong
         console.error('Error fetching patients:', error);
+        console.log('-----------')
         
         // Return a 500 error with a detailed message
         res.status(500).json({ message: 'Error fetching patients', error: error.message });
     }
 });
+
+
+
 
 
 
@@ -175,49 +351,49 @@ app.get('/patients/:id', async (req, res) => {
 });
 
 // Update a patient (PUT)
-app.put('/patients/:id', upload.fields([{ name: 'report', maxCount: 1 }, { name: 'image', maxCount: 1 }]), async (req, res) => {
-    try {
-        const {
-            name, age, gender, height, weight, cause, branch, last_checked,
-            address, coenzymes, boosters, vitamins, trace
-        } = req.body;
+// app.put('/patients/:id', upload.fields([{ name: 'report', maxCount: 1 }, { name: 'image', maxCount: 1 }]), async (req, res) => {
+//     try {
+//         const {
+//             name, age, gender, height, weight, cause, branch, last_checked,
+//             address, coenzymes, boosters, vitamins, trace
+//         } = req.body;
 
-        const updateData = {
-            name,
-            age,
-            gender,
-            height,
-            weight,
-            cause,
-            branch,
-            last_checked: new Date(last_checked),
-            address,
-            coenzymes: coenzymes ? coenzymes.split(',') : [],
-            boosters: boosters ? boosters.split(',') : [],
-            vitamins: vitamins ? vitamins.split(',') : [],
-            trace: trace ? trace.split(',') : []
-        };
+//         const updateData = {
+//             name,
+//             age,
+//             gender,
+//             height,
+//             weight,
+//             cause,
+//             branch,
+//             last_checked: new Date(last_checked),
+//             address,
+//             coenzymes: coenzymes ? coenzymes.split(',') : [],
+//             boosters: boosters ? boosters.split(',') : [],
+//             vitamins: vitamins ? vitamins.split(',') : [],
+//             trace: trace ? trace.split(',') : []
+//         };
 
-        if (req.files && req.files.report) {
-            updateData.report = req.files.report[0].buffer;
-        }
+//         if (req.files && req.files.report) {
+//             updateData.report = req.files.report[0].buffer;
+//         }
 
-        if (req.files && req.files.image) {
-            updateData.image = req.files.image[0].buffer;
-        }
+//         if (req.files && req.files.image) {
+//             updateData.image = req.files.image[0].buffer;
+//         }
 
-        const updatedPatient = await Patient.findByIdAndUpdate(req.params.id, updateData, { new: true });
+//         const updatedPatient = await Patient.findByIdAndUpdate(req.params.id, updateData, { new: true });
 
-        if (!updatedPatient) {
-            return res.status(404).json({ message: 'Patient not found' });
-        }
+//         if (!updatedPatient) {
+//             return res.status(404).json({ message: 'Patient not found' });
+//         }
 
-        res.status(200).json(updatedPatient);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error updating patient' });
-    }
-});
+//         res.status(200).json(updatedPatient);
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ message: 'Error updating patient' });
+//     }
+// });
 
 // Delete a patient (DELETE)
 app.delete('/patients/:id', async (req, res) => {

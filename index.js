@@ -4,7 +4,8 @@ const multer=require('multer');
 const cors = require('cors');
 const exp_status = require('express-status-monitor');
 const multerS3 = require('multer-s3');
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 require('dotenv').config()
 
@@ -145,18 +146,50 @@ app.get('/',(req,res)=>{
 
 
 // upload image
-app.post('/uploadi', uploadi.single('img'), (req, res) => {
-    if (req.file) {
-        console.log('image uploaded - ',req.file.location);
+// app.post('/uploadi', uploadi.single('img'), (req, res) => {
+//     if (req.file) {
+//         console.log('image uploaded - ',req.file.location);
+//         res.status(200).json({
+//             message: 'Image uploaded successfully',
+//             fileUrl: req.file.location // S3 file URL
+//         });
+//     } else {
+//         res.status(400).json({ error: 'File upload failed' });
+//     }
+// });
+app.post('/uploadi', uploadi.single('img'), async (req, res) => {
+    // if (req.file) {
+    //     console.log('image uploaded - ',req.file.location);
+    //     res.status(200).json({
+    //         message: 'Image uploaded successfully',
+    //         fileUrl: req.file.location // S3 file URL
+    //     });
+    // } else {
+    //     res.status(400).json({ error: 'File upload failed' });
+    // }
+
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'File upload failed' });
+        }
+
+        // Prepare parameters for generating a signed URL
+        const signedUrlParams = new GetObjectCommand({
+            Bucket: process.env.BUCKET_NAME,
+            Key: req.file.key, // Use the key that was set during the upload
+        });
+
+        const sign = await getSignedUrl(client, signedUrlParams);
+
         res.status(200).json({
             message: 'Image uploaded successfully',
-            fileUrl: req.file.location // S3 file URL
+            fileUrl: sign, // Pre-signed URL for the uploaded image
         });
-    } else {
-        res.status(400).json({ error: 'File upload failed' });
-    }
+        } catch (error) {
+            console.error('Error generating pre-signed URL: ', error);
+            res.status(500).json({ error: 'Error generating pre-signed URL' });
+        }
 });
-
 
 // upload pdf
 app.post('/uploadf', uploadf.single('pdf'), (req, res) => {

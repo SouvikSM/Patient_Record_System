@@ -170,7 +170,7 @@ app.post('/uploadi', uploadi.single('img'), async (req, res) => {
 
     try {
         if (!req.file) {
-            return res.status(400).json({ error: 'File upload failed' });
+            return res.status(400).json({ error: 'Image upload failed' });
         }
 
         // Prepare parameters for generating a signed URL
@@ -192,16 +192,37 @@ app.post('/uploadi', uploadi.single('img'), async (req, res) => {
 });
 
 // upload pdf
-app.post('/uploadf', uploadf.single('pdf'), (req, res) => {
-    if (req.file) {
-        console.log('file uploaded - ', req.file.location);
-        res.status(200).json({
-            message: 'File uploaded successfully',
-            fileUrl: req.file.location // S3 file URL
+app.post('/uploadf', uploadf.single('pdf'), async (req, res) => {
+    // if (req.file) {
+    //     console.log('file uploaded - ', req.file.location);
+    //     res.status(200).json({
+    //         message: 'File uploaded successfully',
+    //         fileUrl: req.file.location // S3 file URL
+    //     });
+    // } else {
+    //     res.status(400).json({ error: 'File upload failed' });
+    // }
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'Pdf upload failed' });
+        }
+
+        // Prepare parameters for generating a signed URL
+        const signedUrlParams = new GetObjectCommand({
+            Bucket: process.env.BUCKET_NAME,
+            Key: req.file.key, // Use the key that was set during the upload
         });
-    } else {
-        res.status(400).json({ error: 'File upload failed' });
-    }
+
+        const sign = await getSignedUrl(client, signedUrlParams);
+
+        res.status(200).json({
+            message: 'Pdf uploaded successfully',
+            fileUrl: sign, // Pre-signed URL for the uploaded image
+        });
+        } catch (error) {
+            console.error('Error generating pre-signed URL: ', error);
+            res.status(500).json({ error: 'Error generating pre-signed URL' });
+        }
 });
 
 

@@ -4,7 +4,7 @@ const multer=require('multer');
 const cors = require('cors');
 const exp_status = require('express-status-monitor');
 const multerS3 = require('multer-s3');
-const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 require('dotenv').config();
@@ -147,17 +147,18 @@ app.get('/',(req,res)=>{
 });
 
 
-
-
+// upload img
 app.post('/uploadi', uploadi.single('img'), async (req, res) => {
 
     try {
         if (!req.file) {
+            console.log('img is missing');
             return res.status(400).json({ error: 'Image upload failed' });
         }
 
         const fileUrl = `${process.env.CLOUDFRONT_DOMAIN_NAME}/${req.file.key}`;
 
+        console.log('img is done')
         res.status(200).json({
             message: 'Image uploaded successfully',
             fileUrl, // Pre-signed URL for the uploaded image
@@ -172,11 +173,12 @@ app.post('/uploadi', uploadi.single('img'), async (req, res) => {
 app.post('/uploadf', uploadf.single('pdf'), async (req, res) => {
     try {
         if (!req.file) {
+            console.log('pdf is missing');
             return res.status(400).json({ error: 'Pdf upload failed' });
         }
 
         const fileUrl = `${process.env.CLOUDFRONT_DOMAIN_NAME}/${req.file.key}`;
-
+        console.log('pdf is done');
         res.status(200).json({
             message: 'Pdf uploaded successfully',
             fileUrl, // Pre-signed URL for the uploaded image
@@ -239,6 +241,45 @@ app.post('/patients', upload.fields([{ name: 'report' }, { name: 'image' }]), as
         }
     }
 }); */
+
+
+app.get('/encode', async (req, res) => {
+    const fileName = req.query.fileName;
+    const fileType = req.query.fileType;
+
+    console.log('fileName',fileName);
+    console.log('fileType',fileType);
+
+    let folder;
+    if (fileType === 'image/jpeg' || fileType === 'image/jpg' || fileType === 'image/png' )
+        folder = 'img';
+    else
+        folder = 'pdf';
+
+    const params = {
+        Bucket: process.env.BUCKET_NAME,
+        Key: `uploads/kol/img/${Date.now().toString()}-${fileName}`,
+        // Expires: 3600, // URL expiration time in seconds
+        ContentType: fileType,
+    };
+
+    try {
+        console.log('key', params.Key);
+        const command = new PutObjectCommand(params);
+        // console.log('command', command);
+        const presignedUrl = await getSignedUrl(client, command);
+        console.log('presignedUrl', presignedUrl);
+
+        res.status(200).json({
+            url: presignedUrl,
+            path: params.Key
+        });
+    } catch (error) {
+        console.log('catch error',error);
+        res.status(500).json({ error: 'Error generating pre-signed URL' });
+    }
+});
+
 
 
 app.post('/patients', async (req, res) => {

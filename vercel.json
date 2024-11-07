@@ -11,17 +11,5 @@
             "src": "/(.*)",
             "dest": "/index.js"
         }
-    ],
-    "functions": {
-        "/uploadi.js": {
-            "memory": 1024,
-            "maxDuration": 60,
-            "maxLambdaSize": "50mb"
-        },
-        "/uploadf.js": {
-            "memory": 1024,
-            "maxDuration": 60,
-            "maxLambdaSize": "50mb"
-        }
-    }
+    ]
 }

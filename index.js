@@ -7,19 +7,22 @@ const multerS3 = require('multer-s3');
 const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
-require('dotenv').config()
+require('dotenv').config();
 
 const port= process.env.PORT;
 
 
 const app=express();
 
+// Pre-defined Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cors()); // Enable CORS for all routes
 app.use(exp_status());
 
 
+
+// S3 client config
 const client = new S3Client({ 
     credentials: {
         accessKeyId: process.env.ACCESSKEYID,
@@ -32,6 +35,7 @@ const client = new S3Client({
 // const storage = m.memoryStorage();  // Store files in memory as buffers
 // const upload = m({ storage: storage });
 
+// storage config for Image
 const uploadi = multer({
     storage: multerS3({
         s3: client,
@@ -45,6 +49,8 @@ const uploadi = multer({
         }
     })
 });
+
+// storage config for PDF
 const uploadf = multer({
     storage: multerS3({
         s3: client,
@@ -135,10 +141,6 @@ const PatientSchema = new mongoose.Schema({
 const PModel = mongoose.model('patient', PatientSchema);
 
 
-
-
-
-
 app.get('/',(req,res)=>{
     console.log('/ URL hitted');
     res.send({message: "Backend works"});
@@ -157,6 +159,8 @@ app.get('/',(req,res)=>{
 //         res.status(400).json({ error: 'File upload failed' });
 //     }
 // });
+
+
 app.post('/uploadi', uploadi.single('img'), async (req, res) => {
     // if (req.file) {
     //     console.log('image uploaded - ',req.file.location);
@@ -224,7 +228,6 @@ app.post('/uploadf', uploadf.single('pdf'), async (req, res) => {
             res.status(500).json({ error: 'Error generating pre-signed URL' });
         }
 });
-
 
 
 // Create patients (POST)
@@ -351,8 +354,6 @@ app.get('/all', async (req, res) => {
 });
 
 
-
-
 // Get all patients (GET)
 app.get('/patients', async (req, res) => {
     try {
@@ -387,10 +388,6 @@ app.get('/patients', async (req, res) => {
 });
 
 
-
-
-
-
 // Get a patient by ID (GET)
 app.get('/patients/:id', async (req, res) => {
     try {
@@ -404,6 +401,7 @@ app.get('/patients/:id', async (req, res) => {
         res.status(500).json({ message: 'Error fetching patient' });
     }
 });
+
 
 // Update a patient (PUT)
 // app.put('/patients/:id', upload.fields([{ name: 'report', maxCount: 1 }, { name: 'image', maxCount: 1 }]), async (req, res) => {
@@ -450,6 +448,7 @@ app.get('/patients/:id', async (req, res) => {
 //     }
 // });
 
+
 // Delete a patient (DELETE)
 app.delete('/patients/:id', async (req, res) => {
     try {
@@ -464,9 +463,11 @@ app.delete('/patients/:id', async (req, res) => {
     }
 });
 
+
 app.listen(port, ()=>{
     console.log('Server is Running on PORT',port);
 });
+
 
 mongoose.connect(URI)
     .then(() => {

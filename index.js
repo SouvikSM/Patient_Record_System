@@ -258,7 +258,7 @@ app.get('/encode', async (req, res) => {
 
     const params = {
         Bucket: process.env.BUCKET_NAME,
-        Key: `uploads/kol/img/${Date.now().toString()}-${fileName}`,
+        Key: `uploads/kol/${folder}/${Date.now().toString()}-${fileName}`,
         // Expires: 3600, // URL expiration time in seconds
         ContentType: fileType,
     };

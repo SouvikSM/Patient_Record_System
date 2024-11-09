@@ -1,9 +1,9 @@
 const express=require('express');
 const mongoose=require('mongoose');
-const multer=require('multer');
+// const multer=require('multer');
 const cors = require('cors');
 const exp_status = require('express-status-monitor');
-const multerS3 = require('multer-s3');
+// const multerS3 = require('multer-s3');
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
@@ -36,46 +36,64 @@ const client = new S3Client({
 // const upload = m({ storage: storage });
 
 // storage config for Image
-const uploadi = multer({
-    storage: multerS3({
-        s3: client,
-        bucket: process.env.BUCKET_NAME,
-        contentType: multerS3.AUTO_CONTENT_TYPE,
-        metadata: (req, file, cb) => {
-            cb(null, { fieldName: file.fieldname });
-        },
-        key: (req, file, cb) => {
-            cb(null, `uploads/kol/img/${Date.now().toString()}-${file.originalname}`);
-        }
-    })
-});
+// const uploadi = multer({
+//     storage: multerS3({
+//         s3: client,
+//         bucket: process.env.BUCKET_NAME,
+//         contentType: multerS3.AUTO_CONTENT_TYPE,
+//         metadata: (req, file, cb) => {
+//             cb(null, { fieldName: file.fieldname });
+//         },
+//         key: (req, file, cb) => {
+//             cb(null, `uploads/kol/img/${Date.now().toString()}-${file.originalname}`);
+//         }
+//     })
+// });
 
 // storage config for PDF
-const uploadf = multer({
-    storage: multerS3({
-        s3: client,
-        bucket: process.env.BUCKET_NAME,
-        contentType: multerS3.AUTO_CONTENT_TYPE,
-        metadata: (req, file, cb) => {
-            cb(null, { 
-                fieldName: file.originalname,
-                // contentType: 'application/pdf',
-                // contentDisposition: 'inline'
-            });
-        },
-        key: (req, file, cb) => {
-            cb(null, `uploads/kol/pdf/${Date.now().toString()}-${file.originalname}`);
-        }
-    })
+// const uploadf = multer({
+//     storage: multerS3({
+//         s3: client,
+//         bucket: process.env.BUCKET_NAME,
+//         contentType: multerS3.AUTO_CONTENT_TYPE,
+//         metadata: (req, file, cb) => {
+//             cb(null, { 
+//                 fieldName: file.originalname,
+//                 // contentType: 'application/pdf',
+//                 // contentDisposition: 'inline'
+//             });
+//         },
+//         key: (req, file, cb) => {
+//             cb(null, `uploads/kol/pdf/${Date.now().toString()}-${file.originalname}`);
+//         }
+//     })
+// });
+
+
+const reportSchema = new mongoose.Schema({
+    url: {
+        type: String,
+        required: true,
+    },
+    date: {
+        type: Date
+    },
 });
 
-
-const URI = process.env.MONGODB_URL;
-
+const diseaseSchema = new mongoose.Schema({
+    url: {
+        type: String,
+        required: true,
+    },
+    date: {
+        type: Date
+    },
+});
 
 const PatientSchema = new mongoose.Schema({
     name: {
         type: String,
+        immutable: true,
         required: true
     },
     age: {
@@ -84,6 +102,7 @@ const PatientSchema = new mongoose.Schema({
     },
     gender: {
         type: String,
+        immutable: true,
         required: true
     },
     height: {
@@ -111,13 +130,16 @@ const PatientSchema = new mongoose.Schema({
         required: true
     },
     report: {
-        // type: Buffer,
-        type: String,
+        type: [reportSchema],
+        required: true
+    },
+    disease: {
+        type: [diseaseSchema],
         required: true
     },
     image: {
-        // type: Buffer,
         type: String,
+        // immutable: true,
         required: true
     },
     coenzymes: {
@@ -148,46 +170,46 @@ app.get('/',(req,res)=>{
 
 
 // upload img
-app.post('/uploadi', uploadi.single('img'), async (req, res) => {
+// app.post('/uploadi', uploadi.single('img'), async (req, res) => {
 
-    try {
-        if (!req.file) {
-            console.log('img is missing');
-            return res.status(400).json({ error: 'Image upload failed' });
-        }
+//     try {
+//         if (!req.file) {
+//             console.log('img is missing');
+//             return res.status(400).json({ error: 'Image upload failed' });
+//         }
 
-        const fileUrl = `${process.env.CLOUDFRONT_DOMAIN_NAME}/${req.file.key}`;
+//         const fileUrl = `${process.env.CLOUDFRONT_DOMAIN_NAME}/${req.file.key}`;
 
-        console.log('img is done')
-        res.status(200).json({
-            message: 'Image uploaded successfully',
-            fileUrl, // Pre-signed URL for the uploaded image
-        });
-        } catch (error) {
-            console.error('Error generating pre-signed URL: ', error);
-            res.status(500).json({ error: 'Error generating pre-signed URL' });
-        }
-});
+//         console.log('img is done')
+//         res.status(200).json({
+//             message: 'Image uploaded successfully',
+//             fileUrl, // Pre-signed URL for the uploaded image
+//         });
+//         } catch (error) {
+//             console.error('Error generating pre-signed URL: ', error);
+//             res.status(500).json({ error: 'Error generating pre-signed URL' });
+//         }
+// });
 
 // upload pdf
-app.post('/uploadf', uploadf.single('pdf'), async (req, res) => {
-    try {
-        if (!req.file) {
-            console.log('pdf is missing');
-            return res.status(400).json({ error: 'Pdf upload failed' });
-        }
+// app.post('/uploadf', uploadf.single('pdf'), async (req, res) => {
+//     try {
+//         if (!req.file) {
+//             console.log('pdf is missing');
+//             return res.status(400).json({ error: 'Pdf upload failed' });
+//         }
 
-        const fileUrl = `${process.env.CLOUDFRONT_DOMAIN_NAME}/${req.file.key}`;
-        console.log('pdf is done');
-        res.status(200).json({
-            message: 'Pdf uploaded successfully',
-            fileUrl, // Pre-signed URL for the uploaded image
-        });
-        } catch (error) {
-            console.error('Error generating pre-signed URL: ', error);
-            res.status(500).json({ error: 'Error generating pre-signed URL' });
-        }
-});
+//         const fileUrl = `${process.env.CLOUDFRONT_DOMAIN_NAME}/${req.file.key}`;
+//         console.log('pdf is done');
+//         res.status(200).json({
+//             message: 'Pdf uploaded successfully',
+//             fileUrl, // Pre-signed URL for the uploaded image
+//         });
+//         } catch (error) {
+//             console.error('Error generating pre-signed URL: ', error);
+//             res.status(500).json({ error: 'Error generating pre-signed URL' });
+//         }
+// });
 
 
 // Create patients (POST)
@@ -290,18 +312,8 @@ app.post('/patients', async (req, res) => {
         } = req.body;
 
 
-        // console.log('this is image',req.files.image);
-        // console.log('this is report',req.files.report);
-        
-
-        // if (!req.files || !req.files.report || !req.files.image) {
-        //     res.send({ err: 'image and pdf not attached' });
-        //     return res.status(400).json({ err: 'image and pdf not attached--------' });
-        // }
-
         // Create a new patient instance using the PModel, not Patient
         const newPatient = new PModel(
-            // req.body
             {
             name: name,
             age: age,
@@ -312,9 +324,7 @@ app.post('/patients', async (req, res) => {
             branch: branch,
             last_checked: new Date(last_checked),
             address: address,
-            // report: req.files.report[0].buffer,
-            // image: req.files.image[0].buffer,
-            report: report,
+            report: report || [],
             image: image,
             coenzymes: coenzymes,
             boosters: boosters,
@@ -403,6 +413,49 @@ app.get('/patients/:id', async (req, res) => {
 
 
 // Update a patient (PUT)
+app.put('/patients/:id', async (req, res) => {
+    try {
+        const {
+            name, age, gender, height, weight, cause, branch, last_checked,
+            address, coenzymes, boosters, vitamins, trace
+        } = req.body;
+
+        const updateData = {
+            name,
+            age,
+            gender,
+            height,
+            weight,
+            cause,
+            branch,
+            last_checked: new Date(last_checked),
+            address,
+            coenzymes: coenzymes ? coenzymes.split(',') : [],
+            boosters: boosters ? boosters.split(',') : [],
+            vitamins: vitamins ? vitamins.split(',') : [],
+            trace: trace ? trace.split(',') : []
+        };
+
+        if (req.files && req.files.report) {
+            updateData.report = req.files.report[0].buffer;
+        }
+
+        if (req.files && req.files.image) {
+            updateData.image = req.files.image[0].buffer;
+        }
+
+        const updatedPatient = await Patient.findByIdAndUpdate(req.params.id, updateData, { new: true });
+
+        if (!updatedPatient) {
+            return res.status(404).json({ message: 'Patient not found' });
+        }
+
+        res.status(200).json(updatedPatient);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error updating patient' });
+    }
+});
 // app.put('/patients/:id', upload.fields([{ name: 'report', maxCount: 1 }, { name: 'image', maxCount: 1 }]), async (req, res) => {
 //     try {
 //         const {
@@ -448,6 +501,7 @@ app.get('/patients/:id', async (req, res) => {
 // });
 
 
+
 // Delete a patient (DELETE)
 app.delete('/patients/:id', async (req, res) => {
     try {
@@ -468,7 +522,7 @@ app.listen(port, ()=>{
 });
 
 
-mongoose.connect(URI)
+mongoose.connect(process.env.MONGODB_URL)
     .then(() => {
         console.log('MongoDB connected...');
         // console.log('ps',PatientSchema);

@@ -70,39 +70,16 @@ const client = new S3Client({
 // });
 
 
-const reportSchema = new mongoose.Schema({
-    url: {
-        type: String,
-        required: true,
-    },
-    date: {
-        type: Date
-    },
-});
+// const diseaseSchema = new mongoose.Schema({
+//     url: {
+//         type: [String],
+//         // required: true,
+//     }
+// });
 
-const diseaseSchema = new mongoose.Schema({
-    url: {
-        type: String,
-        required: true,
-    },
-    date: {
-        type: Date
-    },
-});
-
-const PatientSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        immutable: true,
-        required: true
-    },
+const sessionSchema = new mongoose.Schema({
     age: {
         type: Number, 
-        required: true
-    },
-    gender: {
-        type: String,
-        immutable: true,
         required: true
     },
     height: {
@@ -117,31 +94,79 @@ const PatientSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    branch: {
+    severity: {
         type: String,
         required: true
     },
-    last_checked: {
-        type: Date,
-        required: true
+    // last_checked: {
+    //     type: Date,
+    //     required: true
+    // },
+
+    systole: {
+        type: Number,
+        // required: true
     },
-    address: {
-        type: String,
-        required: true
+    diastole: {
+        type: Number,
+        // required: true
     },
+    parabolic: {
+        type: Number,
+        // required: true
+    },
+
+    rbc: {
+        type: Number,
+        // required: true
+    },
+    wbc: {
+        type: Number,
+        // required: true
+    },
+    heamoglobin: {
+        type: Number,
+        // required: true
+    },
+    platelets: {
+        type: Number,
+        // required: true
+    },
+    serum_creatinine: {
+        type: Number,
+        // required: true
+    },
+    urea: {
+        type: Number,
+        // required: true
+    },
+
+    bone_marrow: {
+        type: Number,
+        // required: true
+    },
+    immune_system: {
+        type: Number,
+        // required: true
+    },
+    spleen: {
+        type: Number,
+        // required: true
+    },
+    lymph_node: {
+        type: Number,
+        // required: true
+    },
+
     report: {
-        type: [reportSchema],
-        required: true
+        type: String,
+        // required: true
     },
     disease: {
-        type: [diseaseSchema],
-        required: true
+        type: [String],
+        // required: true
     },
-    image: {
-        type: String,
-        // immutable: true,
-        required: true
-    },
+
     coenzymes: {
         type: [String],
         required: true
@@ -156,6 +181,37 @@ const PatientSchema = new mongoose.Schema({
     },
     trace: {
         type: [String],
+        required: true
+    },
+
+}, {timestamps: true});
+
+const PatientSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        immutable: true,
+        required: true
+    },
+    gender: {
+        type: String,
+        immutable: true,
+        required: true
+    },
+    branch: {
+        type: String,
+        required: true
+    },
+    address: {
+        type: String,
+        required: true
+    },
+    image: {
+        type: String,
+        // immutable: true,
+        required: true
+    },
+    sessionDet: {
+        type: [sessionSchema],
         required: true
     },
 }, {timestamps: true});
@@ -212,68 +268,18 @@ app.get('/',(req,res)=>{
 // });
 
 
-// Create patients (POST)
-/*
-app.post('/patients', upload.fields([{ name: 'report' }, { name: 'image' }]), async (req, res) => {
-    try {
-        const {
-            name, age, gender, height, weight, cause, branch, last_checked,
-            address, coenzymes, boosters, vitamins, trace
-        } = req.body;
-
-
-        console.log('this is image',req.files.image);
-        console.log('this is report',req.files.report);
-        
-
-        if (!req.files || !req.files.report || !req.files.image) {
-            res.send({ err: 'image and pdf not attached' });
-            return res.status(400).json({ err: 'image and pdf not attached--------' });
-        }
-
-        // Create a new patient instance using the PModel, not Patient
-        const newPatient = new PModel({
-            name: name,
-            age: age,
-            gender: gender,
-            height: height,
-            weight: weight,
-            cause: cause,
-            branch: branch,
-            last_checked: new Date(last_checked),
-            address: address,
-            report: req.files.report[0].buffer,
-            image: req.files.image[0].buffer,
-            coenzymes: coenzymes ? JSON.parse(coenzymes) : [],
-            boosters: boosters ? JSON.parse(boosters) : [],
-            vitamins: vitamins ? JSON.parse(vitamins) : [],
-            trace: trace ? JSON.parse(trace) : []
-        });
-
-        await newPatient.save();
-        console.log('--------patient added');
-        res.status(201).json({message: 'success', newPatient});
-    } catch (error) {
-        console.error('error in catch',error);
-        if (error) {
-            res.send({ err: error.message });
-        } else{
-            res.send({ err: 'error in catch' });
-            res.status(500).json({ message: "error in catch--------" });
-        }
-    }
-}); */
-
-
+// Create masked URL (GET)
 app.get('/encode', async (req, res) => {
+    let folder;
     const fileName = req.query.fileName;
     const fileType = req.query.fileType;
 
     console.log('fileName',fileName);
     console.log('fileType',fileType);
 
-    let folder;
-    if (fileType === 'image/jpeg' || fileType === 'image/jpg' || fileType === 'image/png' )
+    if ((fileType === 'image/jpeg' || fileType === 'image/jpg' || fileType === 'image/png' ) && req.query?.fileD)
+        folder = 'dis';
+    else if ((fileType === 'image/jpeg' || fileType === 'image/jpg' || fileType === 'image/png' ))
         folder = 'img';
     else
         folder = 'pdf';
@@ -303,35 +309,52 @@ app.get('/encode', async (req, res) => {
 });
 
 
-
+// Create patients (POST)
 app.post('/patients', async (req, res) => {
     try {
         const {
-            name, age, gender, height, weight, cause, branch, last_checked,
-            address, coenzymes, boosters, vitamins, trace, image, report
+            name, address, gender, branch, image,
+            sessionDet
         } = req.body;
+
+        console.log('req.body', req.body);
+        console.log('sessionDet.disease', sessionDet.disease);  
 
 
         // Create a new patient instance using the PModel, not Patient
-        const newPatient = new PModel(
-            {
-            name: name,
-            age: age,
-            gender: gender,
-            height: height,
-            weight: weight,
-            cause: cause,
-            branch: branch,
-            last_checked: new Date(last_checked),
-            address: address,
-            report: report || [],
-            image: image,
-            coenzymes: coenzymes,
-            boosters: boosters,
-            vitamins: vitamins,
-            trace: trace
-        }
-    );
+        const newPatient = new PModel({
+                name: name,
+                gender: gender,
+                address: address,
+                branch: branch,
+                image: image,
+                sessionDet: [{
+                    age: sessionDet.age,
+                    height: sessionDet.height,
+                    weight: sessionDet.weight,
+                    cause: sessionDet.cause,
+                    severity: sessionDet.severity,
+                    systole: sessionDet.systole,
+                    diastole: sessionDet.diastole,
+                    parabolic: sessionDet.parabolic,
+                    rbc: sessionDet.rbc,
+                    wbc: sessionDet.wbc,
+                    heamoglobin: sessionDet.heamoglobin,
+                    platelets: sessionDet.platelets,
+                    serum_creatinine: sessionDet.serum_creatinine,
+                    urea: sessionDet.urea,
+                    bone_marrow: sessionDet.bone_marrow,
+                    immune_system: sessionDet.immune_system,
+                    spleen: sessionDet.spleen,
+                    lymph_node: sessionDet.lymph_node,
+                    report: sessionDet.report,
+                    disease: sessionDet.disease,
+                    coenzymes: sessionDet.coenzymes,
+                    boosters: sessionDet.boosters,
+                    vitamins: sessionDet.vitamins,
+                    trace: sessionDet.trace
+                }]
+        });
 
         await newPatient.save();
         console.log('--------patient added');
@@ -339,7 +362,7 @@ app.post('/patients', async (req, res) => {
     } catch (error) {
         console.error('error in catch',error);
         if (error) {
-            res.send({ message: 'error', err: error.message });
+            res.status(400).json({ message: 'error', err: error.message });
         } else{
             res.send({ err: 'error in catch' });
             res.status(500).json({ message: "error in catch--------" });
@@ -348,13 +371,34 @@ app.post('/patients', async (req, res) => {
 });
 
 
+// Get all patients (GET) -----> new
 app.get('/all', async (req, res) => {
     try {
         const patients = await PModel.find({});
+
+        // const patientDet = {
+        //     name: patients[0].name,
+        //     age: patients[0].sessionDet[patients[0].sessionDet.length-1].age,
+        //     cause: patients[0].sessionDet[patients[0].sessionDet.length-1].cause,
+        //     last_checked: patients[0].updatedAt,
+        // }
+        let patientDet = [];
+        patients.map((each) => {
+            patientDet.push({
+                _id: each._id,
+                name: each.name,
+                age: each.sessionDet[each.sessionDet.length-1].age,
+                cause: each.sessionDet[each.sessionDet.length-1].cause,
+                image: each.image,
+                last_checked: each.updatedAt
+            })
+        })
+        console.log(patientDet);
+
         res.status(200).json({
             message: "success",
             totalPatients: patients.length,
-            patientsData: patients
+            patientsData: patientDet
         });
     } catch (error) {
         console.error('Error fetching patients:', error);
@@ -363,7 +407,7 @@ app.get('/all', async (req, res) => {
 });
 
 
-// Get all patients (GET)
+// Get all patients (GET) -----> old
 app.get('/patients', async (req, res) => {
     try {
         const includeBinary = req.query.includeBinary === 'true';
@@ -407,55 +451,12 @@ app.get('/patients/:id', async (req, res) => {
         res.status(200).json(patient);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error fetching patient' });
+        res.status(500).json({ message: 'Error fetching patient', det: error });
     }
 });
 
 
 // Update a patient (PUT)
-app.put('/patients/:id', async (req, res) => {
-    try {
-        const {
-            name, age, gender, height, weight, cause, branch, last_checked,
-            address, coenzymes, boosters, vitamins, trace
-        } = req.body;
-
-        const updateData = {
-            name,
-            age,
-            gender,
-            height,
-            weight,
-            cause,
-            branch,
-            last_checked: new Date(last_checked),
-            address,
-            coenzymes: coenzymes ? coenzymes.split(',') : [],
-            boosters: boosters ? boosters.split(',') : [],
-            vitamins: vitamins ? vitamins.split(',') : [],
-            trace: trace ? trace.split(',') : []
-        };
-
-        if (req.files && req.files.report) {
-            updateData.report = req.files.report[0].buffer;
-        }
-
-        if (req.files && req.files.image) {
-            updateData.image = req.files.image[0].buffer;
-        }
-
-        const updatedPatient = await Patient.findByIdAndUpdate(req.params.id, updateData, { new: true });
-
-        if (!updatedPatient) {
-            return res.status(404).json({ message: 'Patient not found' });
-        }
-
-        res.status(200).json(updatedPatient);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error updating patient' });
-    }
-});
 // app.put('/patients/:id', upload.fields([{ name: 'report', maxCount: 1 }, { name: 'image', maxCount: 1 }]), async (req, res) => {
 //     try {
 //         const {
@@ -500,6 +501,58 @@ app.put('/patients/:id', async (req, res) => {
 //     }
 // });
 
+app.put('/patients/:id', async (req, res) => {
+    try {
+        const {
+            age, height, weight, cause, severity, systole, diastole, parabolic, 
+            rbc, wbc, platelets, serum_creatinine, urea,
+            bone_marrow, immune_system, spleen, lymph_node,
+            report, disease, 
+            coenzymes, boosters, vitamins, trace
+        } = req.body;
+
+        const updateData = {};
+
+        if (age !== undefined) updateData.age = age;
+        if (height !== undefined) updateData.height = height;
+        if (weight !== undefined) updateData.weight = weight;
+        if (cause) updateData.cause = cause;
+        if (severity) updateData.severity = severity;
+        if (systole) updateData.systole = systole;
+        if (diastole) updateData.diastole = diastole;
+        if (parabolic) updateData.parabolic = parabolic;
+        if (rbc) updateData.rbc = rbc;
+        if (wbc) updateData.wbc = wbc;
+        if (platelets) updateData.platelets = platelets;
+        if (serum_creatinine) updateData.serum_creatinine = serum_creatinine;
+        if (urea) updateData.urea = urea;
+        if (bone_marrow) updateData.bone_marrow = bone_marrow;
+        if (immune_system) updateData.immune_system = immune_system;
+        if (spleen) updateData.spleen = spleen;
+        if (lymph_node) updateData.lymph_node = lymph_node;
+        if (report) updateData.report = report;
+        if (disease && disease.length > 0) updateData.disease = disease;
+        if (coenzymes && coenzymes.length > 0) updateData.coenzymes = coenzymes;
+        if (boosters && boosters.length > 0) updateData.boosters = boosters;
+        if (vitamins && vitamins.length > 0) updateData.vitamins = vitamins;
+        if (trace && trace.length > 0) updateData.trace = trace;
+
+        const updatedPatient = await PModel.findByIdAndUpdate(
+            req.params.id,
+            { $push: { sessionDet: updateData } },
+            { new: true } // Return the updated document
+        );
+
+        if (!updatedPatient) {
+            return res.status(404).json({ message: 'Patient not found' });
+        }
+
+        res.status(200).json({message: 'record updated', updatedPatient});
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error updating patient' });
+    }
+});
 
 
 // Delete a patient (DELETE)

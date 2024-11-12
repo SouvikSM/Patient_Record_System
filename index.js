@@ -70,12 +70,47 @@ const client = new S3Client({
 // });
 
 
-// const diseaseSchema = new mongoose.Schema({
-//     url: {
-//         type: [String],
-//         // required: true,
-//     }
+// const bloodSchema = new mongoose.Schema({
+//     rbc: {
+//         type: Number,
+//         required: true
+//     },
+//     wbc: {
+//         type: Number,
+//         required: true
+//     },
+//     heamoglobin: {
+//         type: Number,
+//         required: true
+//     },
+//     platelets: {
+//         type: Number,
+//         required: true
+//     },
+//     serum_creatinine: {
+//         type: Number,
+//         required: true
+//     },
+//     urea: {
+//         type: Number,
+//         required: true
+//     },
 // });
+
+const HRSchema = new mongoose.Schema({
+    systole: {
+        type: Number,
+        required: true
+    },
+    diastole: {
+        type: Number,
+        required: true
+    },
+    parabolic: {
+        type: Number,
+        required: true
+    },
+});
 
 const sessionSchema = new mongoose.Schema({
     age: {
@@ -99,68 +134,68 @@ const sessionSchema = new mongoose.Schema({
     //     required: true
     // },
 
-    systole: {
-        type: Number,
-        // required: true
-    },
-    diastole: {
-        type: Number,
-        // required: true
-    },
-    parabolic: {
-        type: Number,
-        // required: true
-    },
-
     rbc: {
         type: Number,
-        // required: true
+        required: true
     },
     wbc: {
         type: Number,
-        // required: true
+        required: true
     },
     heamoglobin: {
         type: Number,
-        // required: true
+        required: true
     },
     platelets: {
         type: Number,
-        // required: true
+        required: true
     },
     serum_creatinine: {
         type: Number,
-        // required: true
+        required: true
     },
     urea: {
         type: Number,
-        // required: true
+        required: true
+    },
+
+    systole: {
+        type: Number,
+        required: true
+    },
+    diastole: {
+        type: Number,
+        required: true
+    },
+    parabolic: {
+        type: Number,
+        required: true
     },
 
     bone_marrow: {
         type: Number,
-        // required: true
+        required: true
     },
     immune_system: {
         type: Number,
-        // required: true
+        required: true
     },
     spleen: {
         type: Number,
-        // required: true
+        required: true
     },
     lymph_node: {
         type: Number,
-        // required: true
+        required: true
     },
 
     report: {
         type: String,
-        // required: true
+        required: true
     },
     disease: {
         type: [String],
-        // required: true
+        required: true
     },
 
     coenzymes: {
@@ -195,6 +230,7 @@ const PatientSchema = new mongoose.Schema({
     },
     branch: {
         type: String,
+        immutable: true,
         required: true
     },
     address: {
@@ -208,6 +244,7 @@ const PatientSchema = new mongoose.Schema({
     },
     cause: {
         type: String,
+        immutable: true,
         required: true
     },
     sessionDet: {
@@ -317,8 +354,8 @@ app.post('/patients', async (req, res) => {
             sessionDet
         } = req.body;
 
-        console.log('req.body', req.body);
-        console.log('sessionDet.disease', sessionDet.disease);  
+        // console.log('req.body', req.body);
+        // console.log('sessionDet.disease', sessionDet.disease);  
 
 
         // Create a new patient instance using the PModel, not Patient
@@ -376,24 +413,20 @@ app.get('/all', async (req, res) => {
     try {
         const patients = await PModel.find({});
 
-        // const patientDet = {
-        //     name: patients[0].name,
-        //     age: patients[0].sessionDet[patients[0].sessionDet.length-1].age,
-        //     cause: patients[0].sessionDet[patients[0].sessionDet.length-1].cause,
-        //     last_checked: patients[0].updatedAt,
-        // }
+        // console.log(patients);
+
         let patientDet = [];
         patients.map((each) => {
             patientDet.push({
                 _id: each._id,
                 name: each.name,
                 age: each.sessionDet[each.sessionDet.length-1].age,
-                cause: each.sessionDet[each.sessionDet.length-1].cause,
+                cause: each.cause,
                 image: each.image,
                 last_checked: each.updatedAt
             })
         })
-        console.log(patientDet);
+        // console.log(patientDet);
 
         res.status(200).json({
             message: "success",
@@ -504,8 +537,8 @@ app.get('/patients/:id', async (req, res) => {
 app.put('/patients/:id', async (req, res) => {
     try {
         const {
-            age, height, weight, cause, severity, systole, diastole, parabolic, 
-            rbc, wbc, platelets, serum_creatinine, urea,
+            age, height, weight, severity, systole, diastole, parabolic, 
+            rbc, wbc, platelets, serum_creatinine, urea, heamoglobin,
             bone_marrow, immune_system, spleen, lymph_node,
             report, disease, 
             coenzymes, boosters, vitamins, trace
@@ -516,7 +549,6 @@ app.put('/patients/:id', async (req, res) => {
         if (age !== undefined) updateData.age = age;
         if (height !== undefined) updateData.height = height;
         if (weight !== undefined) updateData.weight = weight;
-        if (cause) updateData.cause = cause;
         if (severity) updateData.severity = severity;
         if (systole) updateData.systole = systole;
         if (diastole) updateData.diastole = diastole;
@@ -526,6 +558,7 @@ app.put('/patients/:id', async (req, res) => {
         if (platelets) updateData.platelets = platelets;
         if (serum_creatinine) updateData.serum_creatinine = serum_creatinine;
         if (urea) updateData.urea = urea;
+        if (heamoglobin) updateData.heamoglobin = heamoglobin;
         if (bone_marrow) updateData.bone_marrow = bone_marrow;
         if (immune_system) updateData.immune_system = immune_system;
         if (spleen) updateData.spleen = spleen;

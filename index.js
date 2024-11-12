@@ -90,10 +90,6 @@ const sessionSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    cause: {
-        type: String,
-        required: true
-    },
     severity: {
         type: String,
         required: true
@@ -210,6 +206,10 @@ const PatientSchema = new mongoose.Schema({
         // immutable: true,
         required: true
     },
+    cause: {
+        type: String,
+        required: true
+    },
     sessionDet: {
         type: [sessionSchema],
         required: true
@@ -313,7 +313,7 @@ app.get('/encode', async (req, res) => {
 app.post('/patients', async (req, res) => {
     try {
         const {
-            name, address, gender, branch, image,
+            name, address, gender, branch, image, cause,
             sessionDet
         } = req.body;
 
@@ -328,11 +328,11 @@ app.post('/patients', async (req, res) => {
                 address: address,
                 branch: branch,
                 image: image,
+                cause: cause,
                 sessionDet: [{
                     age: sessionDet.age,
                     height: sessionDet.height,
                     weight: sessionDet.weight,
-                    cause: sessionDet.cause,
                     severity: sessionDet.severity,
                     systole: sessionDet.systole,
                     diastole: sessionDet.diastole,
